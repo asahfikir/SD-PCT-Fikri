@@ -62,3 +62,21 @@ Changes to be committed:
         new file:   git.md
 ```
 Jika tidak ada lagi perubahan maka kita bisa `commit` dengan menggunakan perintah `git commit -m "Deskripsi dari perubahan yang dilakukan"`.
+
+# Kirim Perubahan ke Github
+Setelah melakukan commit, commit bisa dilihat melalui perintah `git log`:
+```
+ git log
+commit 0a8fff68f54b6bc209605b257b12857a64f5d47e (HEAD -> main, origin/main, origin/HEAD)
+Author: Rijalul Fikri <asah.fikir@gmail.com>
+Date:   Thu Oct 8 20:50:48 2026 +0700
+
+    Edit Readme, menambahkan git.md
+
+commit ce9e02dce086955e2deb1fe90f4d0ea7e1c1e4d7
+Author: Rijalul Fikri <167858775+asahfikir@users.noreply.github.com>
+Date:   Thu Oct 8 19:43:04 2026 +0700
+
+    Initial commit
+```
+Untuk mengirimkan ke github, gunakan perintah `git push origin main`
