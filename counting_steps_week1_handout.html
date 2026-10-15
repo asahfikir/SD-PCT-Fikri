@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counting Steps — Week 1 Handout</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --ink:#e6edf3; --dim:#9aa7b4;
+    --acc1:#58d6a6; --acc2:#f2a35c; --acc3:#7aa2f7; --acc4:#e06c75; --line:#2b3442;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,sans-serif; line-height:1.6;}
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px 120px;}
+  .mono{font-family:"Cascadia Code","JetBrains Mono",Consolas,monospace;}
+
+  /* ---------- hero ---------- */
+  header{position:relative; overflow:hidden; padding:110px 0 80px; text-align:center;}
+  header h1{font-size:clamp(2rem,5vw,3.4rem); letter-spacing:.02em;
+    background:linear-gradient(90deg,var(--acc1),var(--acc3),var(--acc2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  header p.sub{color:var(--dim); margin-top:14px; font-size:1.05rem;}
+  .badge{display:inline-block; margin-top:22px; padding:6px 16px; border:1px solid var(--line);
+    border-radius:999px; color:var(--acc1); font-size:.85rem; letter-spacing:.12em; text-transform:uppercase;}
+  #heroCanvas{position:absolute; inset:0; z-index:-1; opacity:.35;}
+
+  /* ---------- sections ---------- */
+  section{margin-top:90px;}
+  .kicker{color:var(--acc3); font-size:.8rem; letter-spacing:.2em; text-transform:uppercase;}
+  h2{font-size:clamp(1.5rem,3.5vw,2.2rem); margin:8px 0 6px;}
+  .lede{color:var(--dim); max-width:640px; margin-bottom:26px;}
+
+  .reveal{opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s ease;}
+  .reveal.in{opacity:1; transform:none;}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:24px; margin-top:18px;}
+  .card h3{font-size:1.05rem; margin-bottom:10px; color:var(--acc2);}
+  .callout{border-left:3px solid var(--acc1); background:var(--panel2); padding:14px 18px;
+    border-radius:0 10px 10px 0; margin-top:16px; color:var(--ink);}
+  .num-big{font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--acc1); font-variant-numeric:tabular-nums;}
+
+  /* ---------- buttons ---------- */
+  button{cursor:pointer; border:none; border-radius:10px; padding:10px 20px; font-size:.95rem;
+    font-weight:600; color:#0d1117; background:var(--acc1); transition:transform .15s ease, filter .15s ease;}
+  button:hover{transform:translateY(-2px); filter:brightness(1.1);}
+  button.alt{background:var(--acc3);} button.warn{background:var(--acc2);}
+  button:disabled{opacity:.4; cursor:default; transform:none;}
+  .btnrow{display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; align-items:center;}
+
+  /* ---------- handshake ---------- */
+  #hsStage{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:16px;}
+  .hs-controls{display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-top:14px;}
+  .hs-controls label{color:var(--dim); font-size:.9rem;}
+  input[type=range]{accent-color:var(--acc3); width:180px;}
+  .hs-readout{display:flex; gap:34px; margin-top:14px; flex-wrap:wrap;}
+  .hs-readout div span{display:block; color:var(--dim); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase;}
+  .person{fill:#2b3442; stroke:#4a5a70; stroke-width:2; transition:fill .25s;}
+  .person.touched{fill:var(--acc1); stroke:var(--acc1);}
+  .person.shaking{fill:var(--acc2); stroke:var(--acc2);}
+  .chord{stroke:var(--acc2); stroke-width:1.6; opacity:.85;}
+  .chord.draw{stroke-dasharray:1; stroke-dashoffset:1; transition:stroke-dashoffset .3s ease;}
+  .chord.drawn{stroke-dashoffset:0;}
+  #pen{transition:cx .38s ease, cy .38s ease;}
+
+  /* ---------- programs ---------- */
+  .prog-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px;}
+  @media(max-width:760px){.prog-grid{grid-template-columns:1fr;}}
+  .code{background:#0a0e14; border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+    font-size:.86rem; line-height:1.75; overflow-x:auto;}
+  .cl{white-space:pre; color:#c9d4e0; border-radius:5px; padding:0 6px; transition:background .2s;}
+  .cl.hl{background:rgba(122,162,247,.22); color:#fff;}
+  .cl .kw{color:var(--acc3);} .cl .fn{color:var(--acc1);} .cl .cm{color:#5b6675; font-style:italic;}
+  .out{background:#0a0e14; border:1px dashed var(--line); border-radius:10px; padding:12px 14px;
+    height:150px; overflow:auto; font-size:.8rem; color:var(--dim); margin-top:10px;}
+  .out div{animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0; transform:translateX(-6px);} to{opacity:1; transform:none;}}
+  .stepcount{font-variant-numeric:tabular-nums; color:var(--acc2); font-weight:700;}
+
+  /* ---------- growth table ---------- */
+  table.growth{width:100%; border-collapse:collapse; margin-top:18px; font-variant-numeric:tabular-nums;}
+  table.growth th, table.growth td{padding:12px 14px; text-align:right; border-bottom:1px solid var(--line);}
+  table.growth th{color:var(--dim); font-size:.82rem; letter-spacing:.06em; text-transform:uppercase;}
+  table.growth td:first-child, table.growth th:first-child{text-align:left;}
+  table.growth tr.rowA td:nth-child(2){color:var(--acc1);}
+  table.growth tr.rowB td:nth-child(3){color:var(--acc4); font-weight:600;}
+  .grow-row{opacity:0; transform:translateX(-14px); transition:all .5s ease;}
+  .grow-row.in{opacity:1; transform:none;}
+
+  /* ---------- laptop bars ---------- */
+  .bar-row{display:grid; grid-template-columns:120px 1fr 110px; gap:14px; align-items:center; margin-top:14px;}
+  .bar-track{height:26px; background:var(--panel2); border-radius:6px; overflow:hidden;}
+  .bar-fill{height:100%; width:0; border-radius:6px; transition:width 1.4s cubic-bezier(.2,.8,.2,1);}
+  .bar-fill.a{background:linear-gradient(90deg,#2ea87e,var(--acc1));}
+  .bar-fill.b{background:linear-gradient(90deg,#b04a52,var(--acc4));}
+  .bar-val{font-variant-numeric:tabular-nums; font-weight:700;}
+  .shock{font-size:clamp(1.4rem,3.4vw,2.1rem); font-weight:800; color:var(--acc4);
+    opacity:0; transform:scale(.85); transition:all .5s ease .9s;}
+  .shock.in{opacity:1; transform:none;}
+
+  /* ---------- doubling ---------- */
+  .dbl-wrap{margin-top:20px;}
+  .dbl-n{font-size:1.4rem; color:var(--dim); margin-bottom:14px;}
+  .dbl-n b{color:var(--ink); font-size:1.8rem;}
+  .mult{opacity:0; display:inline-block; margin-left:10px; padding:2px 10px; border-radius:6px;
+    font-weight:800; font-size:.85rem; transform:translateY(6px); transition:all .4s;}
+  .mult.show{opacity:1; transform:none;}
+  .mult.x2{background:rgba(88,214,166,.18); color:var(--acc1);}
+  .mult.x4{background:rgba(224,108,117,.18); color:var(--acc4);}
+
+  /* ---------- constants chart ---------- */
+  .chart-note{margin-top:12px; color:var(--dim); font-size:.9rem;}
+
+  /* ---------- flip cards ---------- */
+  .flip-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; margin-top:18px;}
+  .flip{perspective:900px; height:150px; cursor:pointer;}
+  .flip-inner{position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .55s cubic-bezier(.3,.7,.3,1);}
+  .flip.flipped .flip-inner{transform:rotateY(180deg);}
+  .face{position:absolute; inset:0; backface-visibility:hidden; border-radius:12px; padding:16px;
+    display:flex; align-items:center; justify-content:center; text-align:center; font-size:.92rem;}
+  .face.front{background:var(--panel); border:1px solid var(--line);}
+  .face.back{background:linear-gradient(135deg,#12332a,#16233b); border:1px solid var(--acc1);
+    transform:rotateY(180deg); color:var(--acc1); font-weight:600;}
+  .flip:hover .flip-inner{box-shadow:0 8px 24px rgba(0,0,0,.35);}
+
+  /* ---------- homework ---------- */
+  .hw li{margin:14px 0 14px 20px; color:var(--ink);}
+  .hw b{color:var(--acc2);}
+  .footer-note{margin-top:100px; text-align:center; color:var(--dim); font-size:.85rem;}
+</style>
+</head>
+<body>
+
+<header>
+  <canvas id="heroCanvas"></canvas>
+  <h1>Counting Steps</h1>
+  <p class="sub">Week 1 · The night we learn to count what a program does —<br>and feel why the shape of that count matters.</p>
+  <span class="badge">No “Big O” tonight. We just count.</span>
+</header>
+
+<div class="wrap">
+
+<!-- ================= 1. HANDSHAKE ================= -->
+<section class="reveal">
+  <div class="kicker">0:05 · Warm-up</div>
+  <h2>The Handshake Experiment</h2>
+  <p class="lede">Two rounds with 8 people standing in a line. Round 1: a pen passes down the line — each person touches it once. Round 2: everyone shakes everyone else's hand. Why did round 2 <em>explode</em>?</p>
+
+  <div id="hsStage"><svg id="hsSvg" viewBox="0 0 800 320" width="100%"></svg></div>
+
+  <div class="hs-controls">
+    <button id="btnRound1">▶ Round 1 — pass the pen</button>
+    <button id="btnRound2" class="warn">▶ Round 2 — everyone shakes</button>
+    <label>People: <span id="nLabel">8</span>
+      <input type="range" id="nSlider" min="4" max="14" value="8"></label>
+  </div>
+
+  <div class="hs-readout">
+    <div><span>Touches (round 1)</span><div class="num-big" id="r1Count">0</div><div class="mono" style="color:var(--dim)">= n</div></div>
+    <div><span>Handshakes (round 2)</span><div class="num-big" id="r2Count" style="color:var(--acc2)">0</div><div class="mono" style="color:var(--dim)">= n × (n−1) ÷ 2</div></div>
+    <div><span>Ratio</span><div class="num-big" id="ratio" style="color:var(--acc4)">—</div></div>
+  </div>
+
+  <div class="callout reveal"><b>Board question:</b> What if this room had <b>1,000 people</b>? Round 1 needs <span class="mono">1,000</span> touches. Round 2 needs <span class="mono">~499,500</span> handshakes. Same room. Same people. A totally different universe of work.</div>
+</section>
+
+<!-- ================= 2. THREE PROGRAMS ================= -->
+<section class="reveal">
+  <div class="kicker">0:15 · Counting steps</div>
+  <h2>Three Programs, Three Different Animals</h2>
+  <p class="lede">Same list of 4 names. Watch each program run and count its printed lines.</p>
+
+  <div class="prog-grid">
+    <div class="card">
+      <h3>Program A — print each name once</h3>
+      <div class="code" id="codeA"></div>
+      <div class="btnrow"><button data-run="A">▶ Run A</button></div>
+      <div class="out" id="outA"></div>
+      <div style="margin-top:10px">Steps printed: <span class="stepcount" id="cntA">0</span> <span style="color:var(--dim)">→ grows like <b style="color:var(--acc1)">n</b></span></div>
+    </div>
+    <div class="card">
+      <h3>Program B — print every pair</h3>
+      <div class="code" id="codeB"></div>
+      <div class="btnrow"><button data-run="B">▶ Run B</button></div>
+      <div class="out" id="outB"></div>
+      <div style="margin-top:10px">Steps printed: <span class="stepcount" id="cntB">0</span> <span style="color:var(--dim)">→ grows like <b style="color:var(--acc4)">n²</b></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Program C — print just the first name</h3>
+    <div class="code" id="codeC"></div>
+    <div class="btnrow"><button data-run="C">▶ Run C</button></div>
+    <div style="margin-top:10px">Steps printed: <span class="stepcount" id="cntC">0</span> <span style="color:var(--dim)">→ always <b style="color:var(--acc3)">1</b>, no matter how huge the list gets</span></div>
+  </div>
+</section>
+
+<!-- ================= 3. GROWTH TABLE ================= -->
+<section class="reveal" id="growthSection">
+  <div class="kicker">The growth table</div>
+  <h2>Fill It In Together</h2>
+  <p class="lede">Tally the printed lines for each program as <span class="mono">n</span> grows. Look at the last row for Program B. Really look at it.</p>
+  <div class="card">
+    <table class="growth">
+      <thead><tr><th>n</th><th>Program A (each name)</th><th>Program B (every pair)</th></tr></thead>
+      <tbody>
+        <tr class="grow-row"><td>10</td><td>10</td><td>100</td></tr>
+        <tr class="grow-row"><td>100</td><td>100</td><td>10,000</td></tr>
+        <tr class="grow-row"><td>1,000</td><td>1,000</td><td>1,000,000</td></tr>
+        <tr class="grow-row"><td>1,000,000</td><td>1,000,000</td><td>1,000,000,000,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 4. LAPTOP ================= -->
+<section class="reveal" id="laptopSection">
+  <div class="kicker">The visceral translation</div>
+  <h2>How Long on a Real Laptop?</h2>
+  <p class="lede">A typical laptop does ~<b>100 million</b> simple steps per second. At <span class="mono">n = 1,000,000</span>:</p>
+  <div class="card">
+    <div class="bar-row"><span class="mono">A · n steps</span>
+      <div class="bar-track"><div class="bar-fill a" data-w="0.4"></div></div>
+      <span class="bar-val" style="color:var(--acc1)">0.01 s</span></div>
+    <div style="color:var(--dim); font-size:.8rem; margin-top:10px">Bars drawn ~log-scale so both fit on screen — the real gap is <b style="color:var(--ink)">1,000,000×</b>.</div>
+    <div class="bar-row"><span class="mono">B · n² steps</span>
+      <div class="bar-track"><div class="bar-fill b" data-w="100"></div></div>
+      <span class="bar-val" style="color:var(--acc4)">≈ 2.8 hours</span></div>
+    <div class="shock" id="shock">Same input. One million times more work.</div>
+  </div>
+</section>
+
+<!-- ================= 5. PAIRED PROBLEMS ================= -->
+<section class="reveal">
+  <div class="kicker">0:35 · Paired whiteboard problems</div>
+  <h2>Your Turn — In Pairs</h2>
+  <p class="lede">Work on paper. Your instructor says nothing until you ask. Flip each card when you're ready to check.</p>
+  <div class="flip-grid">
+    <div class="flip"><div class="flip-inner">
+      <div class="face front"><b>P1.</b> Guest list of n names. Plain-language instructions to check whether “Dewi” is on it. How many steps in the <i>worst case</i>?</div>
+      <div class="face back">Check names one by one.<br><br>Worst case: Dewi is last — or absent — so <b>n steps</b>.</div>
+    </div></div>
+    <div class="flip"><div class="flip-inner">
+      <div class="face front"><b>P2.</b> Two guest lists of n names each — find any name that appears on both. Instructions + step count?</div>
+      <div class="face back">For each name on list 1, check all of list 2:<br><br><b>n × n = n² steps</b>.<br>(Clever shortcuts? Explore them — don't shut them down.)</div>
+    </div></div>
+    <div class="flip"><div class="flip-inner">
+      <div class="face front"><b>P3.</b> A loop runs n times; inside it, something happens 3 times. Total steps?</div>
+      <div class="face back"><b>3n steps.</b><br><br>Hold this answer — it starts tonight's big debate.</div>
+    </div></div>
+    <div class="flip"><div class="flip-inner">
+      <div class="face front"><b>Bonus.</b> Add 1 + 2 + … + 100 without adding one by one.</div>
+      <div class="face back">Gauss: (100 × 101) ÷ 2 = <b>5050</b> — one clever step.<br><br>Thinking changes the count.</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= 6. DOUBLING TEST ================= -->
+<section class="reveal">
+  <div class="kicker">0:55 · Debrief</div>
+  <h2>The Doubling Test</h2>
+  <p class="lede">Your new intuition tool for the whole semester: <b>double the input — what happens to the steps?</b> Try it.</p>
+  <div class="card dbl-wrap">
+    <div class="dbl-n">n = <b id="dblN">5</b> names
+      <button id="btnDouble" style="margin-left:18px">⇑ Double n!</button>
+      <button id="btnResetDbl" class="alt" style="margin-left:8px">Reset</button></div>
+    <div class="bar-row"><span class="mono">A · n</span>
+      <div class="bar-track"><div class="bar-fill a" id="dblBarA"></div></div>
+      <span class="bar-val" id="dblValA" style="color:var(--acc1)">5</span><span class="mult x2" id="multA">×2</span></div>
+    <div class="bar-row"><span class="mono">B · n²</span>
+      <div class="bar-track"><div class="bar-fill b" id="dblBarB"></div></div>
+      <span class="bar-val" id="dblValB" style="color:var(--acc4)">25</span><span class="mult x4" id="multB">×4</span></div>
+    <div class="callout">Double the input: Program A's work <b style="color:var(--acc1)">doubles (×2)</b>. Program B's work <b style="color:var(--acc4)">quadruples (×4)</b>. That difference never goes away — it only gets bigger.</div>
+  </div>
+
+  <div class="card">
+    <h3>The constants debate</h3>
+    <p style="color:var(--dim); font-size:.95rem">P3 gave <b style="color:var(--ink)">3n</b>. Is 3n in a “different league” than n when n is a million? Let them argue it out — then look at the chart:</p>
+    <svg id="constChart" viewBox="0 0 720 300" width="100%" style="margin-top:12px"></svg>
+    <div class="chart-note">The <b style="color:var(--ink)">3</b> just tilts the line — same shape, same league. For huge n, <b style="color:var(--ink)">the shape matters; the constant doesn't.</b></div>
+  </div>
+
+  <div class="callout reveal"><b>Worst case:</b> when searching an unsorted guest list, we plan for the unluckiest input — the name is <i>last</i>, or <i>absent</i>. That's the number we count.</div>
+</section>
+
+<!-- ================= 7. DRILL ================= -->
+<section class="reveal">
+  <div class="kicker">1:10 · First drill taste</div>
+  <h2>This Is How Every Thursday Starts</h2>
+  <p class="lede">One snippet on the board. Everyone writes the step count on paper. All reveal on “3.” Flip to test yourself:</p>
+  <div class="flip" style="height:190px"><div class="flip-inner">
+    <div class="face front" style="flex-direction:column; gap:14px">
+      <div class="code" style="align-self:center"><span class="cl"><span class="kw">for</span> name <span class="kw">in</span> guest_list:</span>
+<span class="cl">    <span class="fn">print</span>(name)</span>
+<span class="cl">    <span class="fn">print</span>(<span class="cm">"—"</span>)</span></div>
+      <span style="color:var(--dim); font-size:.85rem">guest_list has n names. How many print steps?</span>
+    </div>
+    <div class="face back"><b>2n steps</b> — two prints per name.<br><br>Still linear: double n → ×2 work.</div>
+  </div></div>
+</section>
+
+<!-- ================= 8. ORAL CHECKS ================= -->
+<section class="reveal">
+  <div class="kicker">1:20 · Oral checks</div>
+  <h2>Can You Answer in 30 Seconds?</h2>
+  <p class="lede">Eight questions, one per person. Click a card to flip and check yourself.</p>
+  <div class="flip-grid" id="oralGrid"></div>
+</section>
+
+<!-- ================= 9. HOMEWORK ================= -->
+<section class="reveal">
+  <div class="kicker">Homework 1 · paper only · 30–45 min</div>
+  <h2>Homework</h2>
+  <div class="card hw">
+    <ol>
+      <li><b>Trace.</b> Hand-trace this snippet for the list <span class="mono">[4, 7, 2, 9]</span> with a variable table (columns: step, x, total):
+        <div class="code" style="margin-top:10px"><span class="cl">total = 0</span>
+<span class="cl"><span class="kw">for</span> x <span class="kw">in</span> [4, 7, 2, 9]:</span>
+<span class="cl">    total += x</span></div></li>
+      <li><b>Count.</b> Two short snippets — write the step count as a function of n (one linear with an inner constant, one nested).</li>
+      <li><b>Explain (3+ sentences).</b> Why does checking every pair of names get so much worse than checking each name once, as lists grow? Use the doubling idea.</li>
+    </ol>
+    <div class="callout"><b>Grading:</b> the explanation counts as much as the counts. A trace that doesn't match the code → redo. This format is non-negotiable from night one.</div>
+    <div class="callout" style="border-left-color:var(--acc4)">📵 No AI on homework until week 5 — homework is designed to be doable on paper.</div>
+  </div>
+  <div class="footer-note">Counting Steps · Week 1 · Tonight we count. The fancy word can wait.</div>
+</section>
+
+</div>
+
+<script>
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- scroll reveal ---------- */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+}), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ---------- hero canvas: rising step counters ---------- */
+(() => {
+  const c = document.getElementById('heroCanvas'), ctx = c.getContext('2d');
+  let W, H, parts = [];
+  const fit = () => { W = c.width = c.offsetWidth; H = c.height = c.offsetHeight; };
+  fit(); addEventListener('resize', fit);
+  for (let i = 0; i < 46; i++) parts.push({
+    x: Math.random(), y: Math.random(), v: .0004 + Math.random() * .0012,
+    s: Math.floor(Math.random() * 97), big: Math.random() < .18
+  });
+  (function tick() {
+    ctx.clearRect(0, 0, W, H);
+    parts.forEach(p => {
+      p.y -= p.v; if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
+      ctx.font = (p.big ? '700 26px' : '12px') + ' Consolas,monospace';
+      ctx.fillStyle = p.big ? 'rgba(224,108,117,.5)' : 'rgba(88,214,166,.35)';
+      ctx.fillText(p.s, p.x * W, p.y * H);
+    });
+    requestAnimationFrame(tick);
+  })();
+})();
+
+/* ---------- handshake ---------- */
+const hs = { n: 8, busy: false };
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('hsSvg');
+const nSlider = document.getElementById('nSlider');
+const nLabel = document.getElementById('nLabel');
+
+function el(tag, attrs) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+function drawStage() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  hs.pos = [];
+  const n = hs.n, cx = 400, cy = 155, R = 125;
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    hs.pos.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+  }
+  // chord layer + person layer
+  hs.chordLayer = el('g', {}); hs.personLayer = el('g', {});
+  svg.appendChild(hs.chordLayer); svg.appendChild(hs.personLayer);
+  hs.people = hs.pos.map(([x, y]) => {
+    const c = el('circle', { cx: x, cy: y, r: 13, 'class': 'person' });
+    hs.personLayer.appendChild(c); return c;
+  });
+  hs.people.forEach((c, i) => {
+    const t = el('text', { x: +c.getAttribute('cx'), y: +c.getAttribute('cy') - 20, 'text-anchor': 'middle', fill: '#9aa7b4', 'font-size': 11 });
+    t.textContent = 'P' + (i + 1); hs.personLayer.appendChild(t);
+  });
+  hs.pen = el('circle', { id: 'pen', cx: hs.pos[0][0], cy: hs.pos[0][1], r: 6, fill: '#f2a35c', opacity: 0 });
+  hs.personLayer.appendChild(hs.pen);
+  document.getElementById('r1Count').textContent = '0';
+  document.getElementById('r2Count').textContent = '0';
+  document.getElementById('ratio').textContent = '—';
+}
+
+async function round1() {
+  if (hs.busy) return; hs.busy = true; drawStage();
+  hs.pen.setAttribute('opacity', 1);
+  let count = 0;
+  for (let i = 0; i < hs.n; i++) {
+    hs.pen.setAttribute('cx', hs.pos[i][0]); hs.pen.setAttribute('cy', hs.pos[i][1]);
+    await sleep(400);
+    hs.people[i].classList.add('touched'); count++;
+    document.getElementById('r1Count').textContent = count;
+  }
+  hs.pen.setAttribute('opacity', 0);
+  hs.busy = false;
+}
+
+async function round2() {
+  if (hs.busy) return; hs.busy = true; drawStage();
+  await sleep(300);
+  let count = 0, delay = 0;
+  for (let i = 0; i < hs.n; i++) for (let j = i + 1; j < hs.n; j++) {
+    const [x1, y1] = hs.pos[i], [x2, y2] = hs.pos[j];
+    const L = el('line', { x1, y1, x2, y2, 'class': 'chord draw', pathLength: 1 });
+    hs.chordLayer.appendChild(L);
+    setTimeout(() => L.classList.add('drawn'), 30 + delay * 35);
+    setTimeout(() => {
+      count++;
+      document.getElementById('r2Count').textContent = count;
+      hs.people[i].classList.add('shaking'); hs.people[j].classList.add('shaking');
+      setTimeout(() => { hs.people[i].classList.remove('shaking'); hs.people[j].classList.remove('shaking'); }, 300);
+    }, 30 + delay * 35);
+    delay++;
+  }
+  const total = hs.n * (hs.n - 1) / 2;
+  setTimeout(() => {
+    document.getElementById('ratio').textContent = (total / hs.n).toFixed(1) + '×';
+    hs.busy = false;
+  }, 30 + delay * 35 + 500);
+}
+
+document.getElementById('btnRound1').onclick = round1;
+document.getElementById('btnRound2').onclick = round2;
+nSlider.oninput = () => { hs.n = +nSlider.value; nLabel.textContent = hs.n; drawStage(); };
+drawStage();
+
+/* ---------- programs ---------- */
+const NAMES = ['Ani', 'Budi', 'Citra', 'Dewi'];
+function renderCode(id, lines) {
+  document.getElementById(id).innerHTML = lines.map(l => `<div class="cl">${l}</div>`).join('');
+}
+renderCode('codeA', [
+  `<span class="cm"># A: print each name once</span>`,
+  `<span class="kw">for</span> name <span class="kw">in</span> names:`,
+  `    <span class="fn">print</span>(name)`]);
+renderCode('codeB', [
+  `<span class="cm"># B: print every pair</span>`,
+  `<span class="kw">for</span> a <span class="kw">in</span> names:`,
+  `    <span class="kw">for</span> b <span class="kw">in</span> names:`,
+  `        <span class="fn">print</span>(a, b)`]);
+renderCode('codeC', [
+  `<span class="cm"># C: print just the first name</span>`,
+  `<span class="fn">print</span>(names[0])`]);
+
+function linesOf(id) { return [...document.querySelectorAll('#' + id + ' .cl')]; }
+function hl(lines, i) { lines.forEach((l, k) => l.classList.toggle('hl', k === i)); }
+function printLine(outEl, text) {
+  const d = document.createElement('div'); d.textContent = text;
+  outEl.appendChild(d); outEl.scrollTop = outEl.scrollHeight;
+}
+async function runA(btn) {
+  btn.disabled = true;
+  const out = document.getElementById('outA'); out.innerHTML = '';
+  const L = linesOf('codeA'); let c = 0;
+  document.getElementById('cntA').textContent = 0;
+  for (const n of NAMES) {
+    hl(L, 2); printLine(out, n); c++; document.getElementById('cntA').textContent = c;
+    await sleep(420);
+  }
+  hl(L, -1); btn.disabled = false;
+}
+async function runB(btn) {
+  btn.disabled = true;
+  const out = document.getElementById('outB'); out.innerHTML = '';
+  const L = linesOf('codeB'); let c = 0;
+  document.getElementById('cntB').textContent = 0;
+  for (const a of NAMES) for (const b of NAMES) {
+    hl(L, 3); printLine(out, a + ', ' + b); c++; document.getElementById('cntB').textContent = c;
+    await sleep(95);
+  }
+  hl(L, -1); btn.disabled = false;
+}
+async function runC(btn) {
+  btn.disabled = true;
+  const L = linesOf('codeC');
+  hl(L, 1); document.getElementById('cntC').textContent = 1;
+  await sleep(600); hl(L, -1); btn.disabled = false;
+}
+document.querySelectorAll('[data-run]').forEach(b => b.onclick = () =>
+  ({ A: runA, B: runB, C: runC })[b.dataset.run](b));
+
+/* ---------- growth table stagger ---------- */
+const rowIO = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  const rows = [...document.querySelectorAll('.grow-row')];
+  rows.forEach((r, i) => setTimeout(() => r.classList.add('in'), i * 450));
+  rowIO.disconnect();
+}), { threshold: .3 });
+rowIO.observe(document.getElementById('growthSection'));
+
+/* ---------- laptop bars ---------- */
+const lapIO = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  document.querySelectorAll('#laptopSection .bar-fill').forEach(f => f.style.width = f.dataset.w + '%');
+  document.getElementById('shock').classList.add('in');
+  lapIO.disconnect();
+}), { threshold: .3 });
+lapIO.observe(document.getElementById('laptopSection'));
+
+/* ---------- doubling test ---------- */
+let dn = 5;
+function renderDbl() {
+  document.getElementById('dblN').textContent = dn;
+  document.getElementById('dblValA').textContent = dn;
+  document.getElementById('dblValB').textContent = (dn * dn).toLocaleString('en-US');
+  const wA = Math.max(2, Math.sqrt(dn) * 18), wB = Math.max(2, Math.sqrt(dn * dn) * 18);
+  document.getElementById('dblBarA').style.width = Math.min(100, wA) + '%';
+  document.getElementById('dblBarB').style.width = Math.min(100, wB) + '%';
+}
+document.getElementById('btnDouble').onclick = () => {
+  dn *= 2; renderDbl();
+  const mA = document.getElementById('multA'), mB = document.getElementById('multB');
+  [mA, mB].forEach(m => { m.classList.remove('show'); void m.offsetWidth; m.classList.add('show'); });
+};
+document.getElementById('btnResetDbl').onclick = () => { dn = 5; renderDbl(); };
+renderDbl();
+
+/* ---------- constants chart ---------- */
+const cc = document.getElementById('constChart');
+function cEl(t, a, txt) { const e = el(t, a); if (txt != null) e.textContent = txt; cc.appendChild(e); return e; }
+(() => {
+  const W = 720, H = 300, pad = 46, x0 = pad, y0 = H - 40, x1 = W - 16, y1 = 16;
+  const N = 100, sx = v => x0 + (v / N) * (x1 - x0), sy = v => y0 - (v / (3 * N)) * (y0 - y1);
+  cEl('line', { x1: x0, y1: y0, x2: x1, y2: y0, stroke: '#2b3442' });
+  cEl('line', { x1: x0, y1: y0, x2: x0, y2: y1, stroke: '#2b3442' });
+  const nLine = cEl('polyline', { fill: 'none', stroke: '#58d6a6', 'stroke-width': 3, points: '' });
+  const tLine = cEl('polyline', { fill: 'none', stroke: '#e06c75', 'stroke-width': 3, 'stroke-dasharray': '7 5', points: '' });
+  let pn = '', pt = '';
+  for (let v = 0; v <= N; v += 2) { pn += sx(v) + ',' + sy(v) + ' '; pt += sx(v) + ',' + sy(3 * v) + ' '; }
+  [nLine, tLine].forEach((p, i) => {
+    p.setAttribute('points', i ? pt : pn);
+    const len = p.getTotalLength();
+    p.style.strokeDasharray = i ? '7 5' : len; p.style.strokeDashoffset = len;
+    p.style.transition = 'stroke-dashoffset 1.6s ease ' + (i * .3) + 's';
+  });
+  const chartIO = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    nLine.style.strokeDashoffset = 0; tLine.style.strokeDashoffset = 0; chartIO.disconnect();
+  }), { threshold: .35 });
+  chartIO.observe(cc);
+  cEl('text', { x: x1 - 60, y: sy(N) - 10, fill: '#58d6a6', 'font-size': 14 }, 'steps = n');
+  cEl('text', { x: x1 - 76, y: sy(3 * N) + 18, fill: '#e06c75', 'font-size': 14 }, 'steps = 3n');
+  cEl('text', { x: x0 + 6, y: y1 + 2, fill: '#5b6675', 'font-size': 12 }, 'steps');
+  cEl('text', { x: x1 - 30, y: y0 + 26, fill: '#5b6675', 'font-size': 12 }, 'n → 100');
+})();
+
+/* ---------- flip cards ---------- */
+document.querySelectorAll('.flip').forEach(f => f.onclick = () => f.classList.toggle('flipped'));
+
+/* ---------- oral checks ---------- */
+const oral = [
+  ['List of 1,000 names, I print each — how many print steps?', '1,000'],
+  ['Same list, every possible pair — roughly how many?', '~1,000,000 (n²)'],
+  ['Does printing the first item depend on list size?', 'No — always 1 step'],
+  ['2n steps vs. n steps — different leagues for huge n?', 'No — same league; the 2 is just a constant'],
+  ['Worst case when searching an unsorted guest list?', 'Name is absent → you check all n'],
+  ['Nested loop where the inner runs 3 times regardless of n?', '3n — still linear'],
+  ['I double the list — how do the pairs-task steps change?', '×4'],
+  ['I double the list — how do the print-each steps change?', '×2'],
+];
+document.getElementById('oralGrid').innerHTML = oral.map(([q, a]) =>
+  `<div class="flip"><div class="flip-inner">
+     <div class="face front">${q}</div>
+     <div class="face back">${a}</div>
+   </div></div>`).join('');
+document.querySelectorAll('#oralGrid .flip').forEach(f => f.onclick = () => f.classList.toggle('flipped'));
+</script>
+</body>
+</html>
